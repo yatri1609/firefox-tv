@@ -68,14 +68,4 @@
         <requestFocus/> <!-- Requests initial focus -->
     </LinearLayout>
 
-    <android.support.v7.widget.RecyclerView
-            android:id="@+id/tileContainer"
-            android:clipToPadding="false"
-            android:paddingTop="10dp"
-            android:clipChildren="false"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingBottom="18dp"
-            android:background="@android:color/transparent"/>
-
 </LinearLayout>

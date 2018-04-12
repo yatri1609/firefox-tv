@@ -8,11 +8,15 @@ import android.arch.lifecycle.Observer
 import android.os.Bundle
 import android.support.annotation.UiThread
 import android.text.TextUtils
+import android.view.ContextMenu
 import android.view.KeyEvent
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import kotlinx.android.synthetic.main.browser_overlay.*
+import kotlinx.android.synthetic.main.browser_overlay.view.*
 import kotlinx.android.synthetic.main.fragment_browser.*
 import kotlinx.android.synthetic.main.fragment_browser.view.*
 import org.mozilla.focus.MainActivity
@@ -22,7 +26,9 @@ import org.mozilla.focus.architecture.NonNullObserver
 import org.mozilla.focus.browser.cursor.CursorController
 import org.mozilla.focus.ext.isVisible
 import org.mozilla.focus.ext.toUri
+import org.mozilla.focus.home.BundledHomeTile
 import org.mozilla.focus.home.BundledTilesManager
+import org.mozilla.focus.home.CustomHomeTile
 import org.mozilla.focus.home.CustomTilesManager
 import org.mozilla.focus.iwebview.IWebView
 import org.mozilla.focus.iwebview.IWebViewLifecycleFragment
@@ -165,6 +171,7 @@ class BrowserFragment : IWebViewLifecycleFragment() {
                 // so we need to do our own caching: see FocusedDOMElementCache for details.
                 if (!isVisible) { webView?.focusedDOMElement?.cache() }
             }
+            registerForContextMenu(browserOverlay.tileContainer)
         }
 
         layout.progressBar.initialize(this)
@@ -172,11 +179,44 @@ class BrowserFragment : IWebViewLifecycleFragment() {
         return layout
     }
 
+    override fun onContextItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.remove -> {
+                val homeTileAdapter = tileContainer.adapter as HomeTileAdapter
+                val tileToRemove = homeTileAdapter.getItemAtPosition(browserOverlay.getFocusedTilePosition())
+                        ?: return false
+                // This assumes that since we're deleting from a Home Tile object that we created
+                // that the Uri is valid, so we do not do error handling here.
+                when (tileToRemove) {
+                    is BundledHomeTile -> {
+                        val tileUri = tileToRemove.url.toUri()
+                        if (tileUri != null) {
+                            BundledTilesManager.getInstance(context).unpinSite(context, tileUri)
+                            homeTileAdapter.removeItemAtPosition(browserOverlay.getFocusedTilePosition())
+                        }
+                    }
+                    is CustomHomeTile -> {
+                        CustomTilesManager.getInstance(context).unpinSite(context, tileToRemove.url)
+                        homeTileAdapter.removeItemAtPosition(browserOverlay.getFocusedTilePosition())
+                    }
+                }
+                TelemetryWrapper.homeTileRemovedEvent(tileToRemove)
+                return true
+            }
+        }
+        return false
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         lifecycle.removeObserver(cursor!!)
         cursor = null
         overlayVisibleCached = browserOverlay.visibility
+    }
+
+    override fun onCreateContextMenu(menu: ContextMenu?, v: View?, menuInfo: ContextMenu.ContextMenuInfo?) {
+        super.onCreateContextMenu(menu, v, menuInfo)
+        activity.menuInflater.inflate(R.menu.menu_context_hometile, menu)
     }
 
     fun onBackPressed(): Boolean {
@@ -235,6 +275,13 @@ class BrowserFragment : IWebViewLifecycleFragment() {
                 event.keyCode == KeyEvent.KEYCODE_BACK) {
             val escKeyEvent = KeyEvent(event.action, KeyEvent.KEYCODE_ESCAPE)
             activity.dispatchKeyEvent(escKeyEvent)
+            return true
+        }
+
+        if (browserOverlay.isVisible && event.keyCode == KeyEvent.KEYCODE_DPAD_CENTER &&
+                event.action == KeyEvent.ACTION_DOWN
+                && event.repeatCount > 1) {
+            activity.openContextMenu(tileContainer)
             return true
         }
         return false

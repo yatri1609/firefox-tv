@@ -17,7 +17,6 @@ import kotlinx.android.synthetic.main.activity_main.*
 import org.mozilla.focus.architecture.NonNullObserver
 import org.mozilla.focus.browser.BrowserFragment
 import org.mozilla.focus.ext.toSafeIntent
-import org.mozilla.focus.home.HomeFragment
 import org.mozilla.focus.iwebview.IWebView
 import org.mozilla.focus.iwebview.WebViewProvider
 import org.mozilla.focus.locale.LocaleAwareAppCompatActivity
@@ -153,12 +152,9 @@ class MainActivity : LocaleAwareAppCompatActivity(), OnUrlEnteredListener {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         val fragmentManager = supportFragmentManager
         val browserFragment = fragmentManager.findFragmentByTag(BrowserFragment.FRAGMENT_TAG) as BrowserFragment?
-        val homeFragment = fragmentManager.findFragmentByTag(HomeFragment.FRAGMENT_TAG) as HomeFragment?
 
         return if (browserFragment != null && browserFragment.isVisible) {
             browserFragment.dispatchKeyEvent(event) || super.dispatchKeyEvent(event)
-        } else if (homeFragment != null && homeFragment.isVisible) {
-            homeFragment.dispatchKeyEvent(event) || super.dispatchKeyEvent(event)
         } else {
             super.dispatchKeyEvent(event)
         }

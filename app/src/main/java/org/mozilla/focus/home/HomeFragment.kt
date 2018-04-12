@@ -6,17 +6,12 @@ package org.mozilla.focus.home
 
 import android.os.Bundle
 import android.support.v4.app.Fragment
-import android.support.v7.widget.GridLayoutManager
-import android.support.v7.widget.RecyclerView
-import android.util.TypedValue
 import android.view.ContextMenu
-import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import kotlinx.android.synthetic.main.fragment_home.*
-import kotlinx.android.synthetic.main.home_tile.*
 import kotlinx.coroutines.experimental.CancellationException
 import kotlinx.coroutines.experimental.Job
 import org.mozilla.focus.R
@@ -62,21 +57,6 @@ class HomeFragment : Fragment() {
         settingsButton.setOnClickListener { v ->
             onSettingsPressed?.invoke()
         }
-
-        registerForContextMenu(tileContainer)
-
-        tileContainer.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(recyclerView: RecyclerView?, dx: Int, dy: Int) {
-                val gridLayoutManager = recyclerView?.layoutManager as GridLayoutManager
-                val lastVisibleItem = gridLayoutManager.findLastCompletelyVisibleItemPosition()
-                // We add a scroll offset, revealing the next row to hint that there are more home tiles
-                if (dy > 0 && getFocusedTilePosition() > lastVisibleItem) {
-                    val scrollOffset = TypedValue.applyDimension(
-                            TypedValue.COMPLEX_UNIT_DIP, home_tile.height.toFloat() / 2, context.resources.displayMetrics)
-                    recyclerView.smoothScrollBy(0, scrollOffset.toInt())
-                }
-            }
-        })
     }
 
     override fun onCreateContextMenu(menu: ContextMenu?, v: View?, menuInfo: ContextMenu.ContextMenuInfo?) {
@@ -111,19 +91,5 @@ class HomeFragment : Fragment() {
 
         @JvmStatic
         fun create() = HomeFragment()
-    }
-
-    fun getFocusedTilePosition(): Int {
-        return (activity.currentFocus.parent as? RecyclerView)?.getChildAdapterPosition(activity.currentFocus) ?: RecyclerView.NO_POSITION
-    }
-
-    fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode == KeyEvent.KEYCODE_MENU &&
-                event.action == KeyEvent.ACTION_UP &&
-                getFocusedTilePosition() != RecyclerView.NO_POSITION) {
-            activity.openContextMenu(tileContainer)
-            return true
-        }
-        return false
     }
 }
